@@ -1,121 +1,83 @@
-import React from "react"
-import {StyleSheet, Text, View, ScrollView, TouchableOpacity} from 'react-native'
+import React, { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert
+} from 'react-native';
+import { 
+  getExpenses, 
+  addExpense, 
+  getBudgetLimit, 
+  updateBudgetLimit, 
+  Transaction 
+} from '../database/actions';
 
-// Mock transactions split into Needs and Wants
-const MOCK_TRANSACTIONS = [
-  { id: '1', amount: 4500, merchant: 'Hostel Rent', category: 'Need', bank: 'SBI', timestamp: 'June 1' },
-  { id: '2', amount: 350, merchant: 'Zomato (Biryani)', category: 'Want', bank: 'HDFC', timestamp: 'Today, 2:30 PM' },
-  { id: '3', amount: 800, merchant: 'College Exam Fee', category: 'Need', bank: 'SBI', timestamp: 'Yesterday' },
-  { id: '4', amount: 450, merchant: 'Pharmacy Medicines', category: 'Need', bank: 'Cash', timestamp: '2 days ago' },
-  { id: '5', amount: 1500, merchant: 'Amazon Shopping', category: 'Want', bank: 'HDFC', timestamp: '3 days ago' },
-];
-
-export default function Dashboard(){
-    const totalBudget = 10000;
-    
-     // Calculate total spent
-    const totalSpent = MOCK_TRANSACTIONS.reduce((sum, tx) => sum + tx.amount, 0);
-    const remainingBudget = totalBudget - totalSpent;
-    const spentPercentage = (totalSpent / totalBudget) * 100;
-
-    //Algorithm for zero-budget predictor
-    const today = new Date();
-    const currentDay = today.getDate();
-    const totalDaysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-
-    //calculate daily burn rate
-    const dailyBurnRate = totalSpent / currentDay;
-
-    const daysRemainingUntilZero = dailyBurnRate > 0 ? remainingBudget / dailyBurnRate : totalDaysInMonth
-
-    const predictedZeroDay = Math.min(totalDaysInMonth, Math.max(1, Math.round(currentDay+daysRemainingUntilZero)))
-
-     const daysLeftInMonth = totalDaysInMonth - currentDay;
+export default function Dashboard() {
+  const [expenses, setExpenses] = useState<Transaction[]>([]);
+  const [budget, setBudget] = useState(10000);
   
-  // Warning status
-  const isBudgetInDanger = predictedZeroDay < totalDaysInMonth;
-  // --- AI Personality Config ---
-  const roastData = {
-    personality: 'Savage Roommate 👿',
-    targetMerchant: 'Zomato (Biryani)',
-    roastText: '"₹350 for Biryani? Last week you borrowed ₹20 from me for chai. You are living a luxury lifestyle on a beggar\'s bank balance, my friend."'
-  };
+  // State variables to capture user inputs in the Add Expense 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [amount, setAmount] = useState('')
+  const [merchant, setMerchant] = useState('')
+  const [category, setCategory] = useState<'Need' | 'Want'>('Need');
+  const [bank, setBank] = useState('Cash');
 
-   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.welcomeText}>Hello Siva,</Text>
-        <Text style={styles.appTitle}>Roast Wallet</Text>
-      </View>
-      {/* Main Budget Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Monthly Budget Progress</Text>
-        <View style={styles.budgetRow}>
-          <Text style={styles.spentText}>₹{totalSpent}</Text>
-          <Text style={styles.budgetText}> / ₹{totalBudget}</Text>
-        </View>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${spentPercentage}%` }]} />
-        </View>
-        <Text style={styles.progressPercent}>
-          ₹{remainingBudget} remaining for the next {daysLeftInMonth} days
-        </Text>
-      </View>
-      {/* NEW: Zero-Budget Predictor Widget */}
-      <View style={[styles.card, isBudgetInDanger ? styles.dangerCard : styles.safeCard]}>
-        <Text style={styles.cardTitle}>Zero-Budget Predictor 🚀</Text>
-        <View style={styles.predictorRow}>
-          <Text style={styles.burnRateLabel}>Avg Daily Burn Rate:</Text>
-          <Text style={styles.burnRateValue}>₹{dailyBurnRate.toFixed(0)}/day</Text>
-        </View>
-        <View style={styles.divider} />
-        {isBudgetInDanger ? (
-          <Text style={styles.dangerPredictionText}>
-            ⚠️ At this rate, your money will hit ₹0 on the **{predictedZeroDay}th** of this month — **{totalDaysInMonth - predictedZeroDay} days** before the month ends!
-          </Text>
-        ) : (
-          <Text style={styles.safePredictionText}>
-            ✅ Safe! At this rate, your budget will comfortably survive the month.
-          </Text>
-        )}
-      </View>
-      {/* NEW: Dynamic AI Roast Box */}
-      <View style={[styles.card, styles.roastCard]}>
-        <View style={styles.roastHeader}>
-          <Text style={styles.roastTitle}>Active Roast Bot: {roastData.personality}</Text>
-        </View>
-        <Text style={styles.roastTarget}>
-          Target: {roastData.targetMerchant} (Unnecessary Spending)
-        </Text>
-        <Text style={styles.roastQuote}>
-          {roastData.roastText}
-        </Text>
-      </View>
-      {/* Transactions Section */}
-      <View style={styles.sectionHeaderRow}>
-        <Text style={styles.sectionTitle}>Recent Transactions</Text>
-      </View>
-      {MOCK_TRANSACTIONS.map((tx) => (
-        <View key={tx.id} style={styles.txRow}>
-          <View style={styles.txLeft}>
-            <View style={[styles.txIconBg, tx.category === 'Need' ? styles.needIcon : styles.wantIcon]}>
-              <Text style={styles.txIconText}>{tx.category === 'Need' ? '🛡️' : '🛍️'}</Text>
-            </View>
-            <View style={tx.category === 'Need' ? null : ""}>
-              <Text style={styles.txMerchant}>{tx.merchant}</Text>
-              <Text style={styles.txMeta}>{tx.bank} • {tx.category}</Text>
-            </View>
-          </View>
-          <Text style={styles.txAmount}>-₹{tx.amount}</Text>
-        </View>
-      ))}
-      <View style={styles.bottomSpacer} />
-    </ScrollView>
-  );
+  //fetch data from SQLite
+  const loadDatabaseData = () => {
+    try {
+      const dbExpenses = getExpenses();
+      const dbBudget = getBudgetLimit();
+      setExpenses(dbExpenses);
+      setBudget(dbBudget)
+    } catch (error) {
+      console.error("Failed to fetch from SQLite:", error);
+    }
+  }
 
+  useEffect(()=>{
+    loadDatabaseData();
+  },[])
+
+  const handleAddExpense = () =>{
+    if(!amount || !merchant){
+      Alert.alert("Required Fields", "Please enter both amount and merchant name.");
+      return;
+    }
+    const parsedAmount = parseFloat(amount);
+    if(isNaN(parsedAmount) || parsedAmount <= 0){
+      Alert.alert("Invalid Amount", "Please enter a valid amount.");
+      return;
+    }
+  }
+
+  //Math Calculations
+  const totalSpent = expenses.reduce((sum,tx) => sum + tx.amount, 0);
+  const remainingBudget = budget - totalSpent;
+  const spentPercentage = Math.min(100, Math.max(0, budget > 0 ? (totalSpent / budget) * 100 : 0));
+
+  //Zero-Budget Predictor Math
+  const today = new Date();
+  const currentDay = today.getDate();
+  const totalDaysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const dailyBurnRate = currentDay > 0 ? totalSpent / currentDay : 0;
+  const daysRemainingUntilZero = dailyBurnRate > 0 ? remainingBudget / dailyBurnRate : totalDaysInMonth;
+  const predictedZeroDay = Math.min(totalDaysInMonth, Math.max(1, Math.round(currentDay + daysRemainingUntilZero)));
+  const daysLeftInMonth = totalDaysInMonth - currentDay;
+  const isBudgetInDanger = predictedZeroDay < totalDaysInMonth && remainingBudget < budget * 0.3;
+  
+  // AI Roast Configuration (Tied to highest "Want" purchase)
+  const wants = expenses.filter(e => e.category === 'Want');
+  const worstPurchase = wants.length > 0 ? wants.reduce((max, e) => e.amount > max.amount ? e : max, wants[0]) : null;
+  const roastText = worstPurchase 
+    ? `"${worstPurchase.merchant} for ₹${worstPurchase.amount}? You are living a luxury lifestyle on a beggar's bank balance, siva. RIP savings."`
+    : `"No 'Want' transactions found yet. What, are you acting like a monk now? Go spend something stupid so I can roast you."`;
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -258,6 +220,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  emptyContainer: {
+    padding: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#8E8E93',
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 20,
+  },
   txRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -305,6 +278,141 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   bottomSpacer: {
-    height: 40,
+    height: 80, // larger spacer to prevent overlap with FAB
+  },
+  // FAB Style
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF4757',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#FF4757',
+    shadowOpacity: 0.4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+  },
+  fabText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#1C1C1E',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    borderColor: '#2C2C2E',
+    borderTopWidth: 1,
+  },
+  modalHeader: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  inputLabel: {
+    color: '#8E8E93',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  textInput: {
+    backgroundColor: '#2C2C2E',
+    color: '#FFFFFF',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    marginBottom: 16,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    justifyContent: 'space-between',
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    borderWidth: 1,
+  },
+  toggleBtnActiveNeed: {
+    backgroundColor: '#2F3542',
+    borderColor: '#E5E5EA',
+  },
+  toggleBtnActiveWant: {
+    backgroundColor: 'rgba(255, 159, 67, 0.2)',
+    borderColor: '#FF9F43',
+  },
+  toggleBtnInactive: {
+    backgroundColor: '#2C2C2E',
+    borderColor: 'transparent',
+  },
+  smallToggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 3,
+    borderWidth: 1,
+  },
+  smallToggleActive: {
+    backgroundColor: '#FF4757',
+    borderColor: '#FF4757',
+  },
+  smallToggleInactive: {
+    backgroundColor: '#2C2C2E',
+    borderColor: 'transparent',
+  },
+  toggleTextActive: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  toggleTextInactive: {
+    color: '#8E8E93',
+    fontSize: 14,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  actionBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
+  cancelBtn: {
+    backgroundColor: '#2C2C2E',
+  },
+  cancelBtnText: {
+    color: '#8E8E93',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveBtn: {
+    backgroundColor: '#FF4757',
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
