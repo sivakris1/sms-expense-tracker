@@ -77,6 +77,54 @@ export default function Dashboard() {
   const roastText = worstPurchase 
     ? `"${worstPurchase.merchant} for ₹${worstPurchase.amount}? You are living a luxury lifestyle on a beggar's bank balance, siva. RIP savings."`
     : `"No 'Want' transactions found yet. What, are you acting like a monk now? Go spend something stupid so I can roast you."`;
+
+    return(
+      <View style={styles.container}>
+        <ScrollView style={styles.contentContainer}>
+          {/* header */}
+          <View style={styles.header}>
+            <Text style={styles.welcomeText}>Hello Siva</Text>
+            <Text style={styles.appTitle}>Roast Wallet</Text>
+          </View>
+
+          {/* Main Budget Card  */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Monthly Budget Progress</Text>
+            <View style={styles.budgetRow}>
+              <Text style={styles.spentText}>₹{totalSpent.toFixed(0)}</Text>
+              <Text style={styles.budgetText}> / ₹{budget}</Text>
+            </View>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: `${spentPercentage}%` }]} />
+            </View>
+            <Text style={styles.progressPercent}>
+                 ₹{remainingBudget >= 0 ? `${remainingBudget.toFixed(0)} remaining` : `${Math.abs(remainingBudget).toFixed(0)} overspent`} for the next {daysLeftInMonth} days
+            </Text>
+          </View>
+
+          {/* Zero-Budget Predictor Widget */}
+          {expenses.length > 0 && (
+            <View style={[styles.card, isBudgetInDanger ? styles.dangerCard : styles.safeCard]}>
+              <Text style={styles.cardTitle}>Zero-Budget Predictor</Text>
+              <View style={styles.predictorRow}>
+                <Text style={styles.burnRateLabel}>Avg Daily Burn Rate:</Text>
+                <Text style={styles.burnRateValue}>₹{dailyBurnRate.toFixed(0)}/day</Text>
+              </View>
+               <View style={styles.divider} />
+            {isBudgetInDanger ? (
+              <Text style={styles.dangerPredictionText}>
+                ⚠️ At this rate, your money will hit ₹0 on the **{predictedZeroDay}th** of this month — **{totalDaysInMonth - predictedZeroDay} days** before the month ends!
+              </Text>
+            ) : (
+              <Text style={styles.safePredictionText}>
+                ✅ Safe! At this rate, your budget will comfortably survive the month.
+              </Text>
+            )}
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    )
 }
 
 const styles = StyleSheet.create({
