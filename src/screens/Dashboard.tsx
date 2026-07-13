@@ -122,6 +122,19 @@ export default function Dashboard() {
             )}
             </View>
           )}
+
+          {/* Dynamic AI Roast Box */}
+            <View style={[styles.card, styles.roastCard]}>
+              <View style={styles.roastHeader}>
+                <Text style={styles.roastTitle}>Active Roast Bot: Savage Roommate 👿</Text>
+              </View>
+              <Text style={styles.roastTarget}>
+                Target : {worstPurchase ? worstPurchase.merchant : "Nothing yet"} (Highest Want)
+              </Text>
+              <Text style={styles.roastQuote}>
+                {roastText}
+              </Text>
+            </View>
         </ScrollView>
       </View>
     )
